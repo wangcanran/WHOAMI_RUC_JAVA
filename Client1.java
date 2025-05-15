@@ -1,5 +1,6 @@
-import java.awt.*;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 
 public class Client1 extends JFrame {
     private JTextField server_ip, room_id;
@@ -20,6 +21,7 @@ public class Client1 extends JFrame {
         Create = new JButton("创建房间");
 
         layoutComponents(getContentPane());
+	addListeners();
     }
 
     public void layoutComponents(Container c) {
@@ -93,6 +95,14 @@ public class Client1 extends JFrame {
         JLabel background = new JLabel(img);
         this.getLayeredPane().add(background, Integer.valueOf(Integer.MIN_VALUE));
         background.setBounds(0, 0, img.getIconWidth(), img.getIconHeight());
+    }
+    private void addListeners(){
+	End.addActionListener(new ActionListener(){
+		@Override
+            public void actionPerformed(ActionEvent e) {
+                dispose();
+            }
+	});
     }
 
     public static void main(String[] args) {
