@@ -39,7 +39,7 @@ public class Game extends JFrame {
         // 解析消息并更新界面
         if (message.startsWith("PLAYER_JOINED:")) {
             String newUser = message.split(":")[1];
-            updatePlayerList(newUser);
+            // updatePlayerList(newUser);
         }
         // 其他消息处理...
     }
