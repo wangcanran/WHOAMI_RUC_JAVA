@@ -2,6 +2,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import javax.swing.*;
+
 public class Game extends JFrame {
     private final Socket socket;
     private final int roomId;
@@ -11,16 +13,16 @@ public class Game extends JFrame {
         this.socket = socket;
         this.roomId = roomId;
         this.username = username;
-        
+
         // 初始化界面
         setTitle("房间号：" + roomId + " - 玩家：" + username);
         setSize(800, 600);
         // 添加游戏逻辑组件...
-        
+
         // 启动消息监听线程
         new Thread(() -> {
             try (BufferedReader in = new BufferedReader(
-                new InputStreamReader(socket.getInputStream()))) {
+                    new InputStreamReader(socket.getInputStream()))) {
                 String message;
                 while ((message = in.readLine()) != null) {
                     // 处理服务器推送的消息
