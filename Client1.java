@@ -110,7 +110,9 @@ public class Client1 extends JFrame {
         Create.addActionListener(e -> {
             String username = JOptionPane.showInputDialog("请输入你的昵称：");
             if (username != null && !username.trim().isEmpty()) {
-                try (Socket socket = new Socket(server_ip.getText(), PORT)) {
+                try {
+                    // 手动创建 Socket，不使用 try-with-resources
+                    Socket socket = new Socket(server_ip.getText(), PORT);
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -122,22 +124,30 @@ public class Client1 extends JFrame {
                     if (response.startsWith("ROOM_CREATED:")) {
                         int roomId = Integer.parseInt(response.split(":")[1]);
                         room_id.setText(String.valueOf(roomId));
-                        new Game(socket, roomId, username); // 传递socket保持长连接
+
+                        JOptionPane.showMessageDialog(this, "连接成功，房间创建成功！房间号为：" + roomId,
+                                "连接成功", JOptionPane.INFORMATION_MESSAGE);
+
+                        new Game(socket, roomId, username); // 传递未关闭的 Socket
                         dispose();
+                    } else {
+                        // 如果创建失败，手动关闭 Socket
+                        socket.close();
                     }
                 } catch (IOException ex) {
                     JOptionPane.showMessageDialog(this, "连接服务器失败");
                 }
             }
         });
-
         // 加入房间按钮
         Start.addActionListener(e -> {
             String username = JOptionPane.showInputDialog("请输入你的昵称：");
             if (username == null || username.trim().isEmpty())
                 return;
 
-            try (Socket socket = new Socket(server_ip.getText(), PORT)) {
+            try {
+                // 手动创建 Socket，不使用 try-with-resources
+                Socket socket = new Socket(server_ip.getText(), PORT);
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -151,16 +161,18 @@ public class Client1 extends JFrame {
                     out.println("JOIN:" + roomId + ":" + username);
                     String joinRes = in.readLine();
                     if (joinRes.startsWith("JOIN_SUCCESS:")) {
-                        new Game(socket, roomId, username);
-                        dispose();
+                        new Game(socket, roomId, username); // 传递未关闭的 Socket
+                        // dispose();
                     } else {
                         JOptionPane.showMessageDialog(this, joinRes);
+                        socket.close(); // 加入失败时关闭
                     }
                 } else {
                     JOptionPane.showMessageDialog(this, "房间不存在");
+                    socket.close(); // 验证失败时关闭
                 }
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "连接失败：" + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "--连接失败：" + ex.getMessage());
             }
         });
     }
