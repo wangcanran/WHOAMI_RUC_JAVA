@@ -3,6 +3,10 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.swing.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+//import javafx.stage.WindowEvent;
 
 public class Game extends JFrame {
     private final Socket socket;
@@ -21,18 +25,53 @@ public class Game extends JFrame {
 
         // 启动消息监听线程
         new Thread(() -> {
-            try (BufferedReader in = new BufferedReader(
-                    new InputStreamReader(socket.getInputStream()))) {
+            BufferedReader in = null;
+            try {
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 String message;
                 while ((message = in.readLine()) != null) {
-                    // 处理服务器推送的消息
                     handleServerMessage(message);
                 }
             } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "与服务器断开连接");
-                dispose();
+                e.printStackTrace(); // 打印异常日志
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(Game.this, "与服务器断开连接");
+                    dispose();
+                });
+            } finally {
+                try {
+                    if (in != null)
+                        in.close();
+                    socket.close(); // 确保Socket关闭
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
             }
         }).start();
+
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                int option = JOptionPane.showConfirmDialog(
+                        Game.this,
+                        "确认退出房间？",
+                        "提示",
+                        JOptionPane.YES_NO_OPTION);
+                if (option == JOptionPane.YES_OPTION) {
+                    try {
+                        // 发送退出消息给服务器
+                        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                        out.println("EXIT:" + roomId + ":" + username);
+                        // 关闭 Socket
+                        socket.close();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                    dispose();
+                }
+            }
+        });
     }
 
     private void handleServerMessage(String message) {
