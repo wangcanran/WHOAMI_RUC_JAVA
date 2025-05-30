@@ -4,12 +4,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import javax.swing.*;
 
 public class Client1 extends JFrame {
     private JTextField server_ip, room_id;
     private JButton Start, End, Create;
-    private static final int PORT=8000;
+    private static final int PORT = 8000;
+
     public Client1() {
         super("谁是卧底-开始界面");
         background();
@@ -25,7 +29,7 @@ public class Client1 extends JFrame {
         Create = new JButton("创建房间");
 
         layoutComponents(getContentPane());
-	addListeners();
+        addListeners();
     }
 
     public void layoutComponents(Container c) {
@@ -95,72 +99,96 @@ public class Client1 extends JFrame {
 
     public void background() {
         ((JPanel) this.getContentPane()).setOpaque(false);
-        ImageIcon img = new ImageIcon("D:\\java_demo\\start.jpg");
+        ImageIcon img = new ImageIcon("resources/start.jpg");
         JLabel background = new JLabel(img);
         this.getLayeredPane().add(background, Integer.valueOf(Integer.MIN_VALUE));
         background.setBounds(0, 0, img.getIconWidth(), img.getIconHeight());
     }
-    private void addListeners(){
-    // 退出按钮
-    End.addActionListener(e -> dispose());
-    
-    // 创建房间按钮
-    Create.addActionListener(e -> {
-        String username = JOptionPane.showInputDialog("请输入你的昵称：");
-        if (username != null && !username.trim().isEmpty()) {
-            try (Socket socket = new Socket(server_ip.getText(), PORT)) {
+
+    private void addListeners() {
+        // 退出按钮
+        End.addActionListener(e -> dispose());
+
+        // 创建房间按钮
+        Create.addActionListener(e -> {
+            String username = JOptionPane.showInputDialog("请输入你的昵称：");
+            if (username != null && !username.trim().isEmpty()) {
+                try {
+                    // 手动创建 Socket，不使用 try-with-resources
+                    Socket socket = new Socket(server_ip.getText(), PORT);
+                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                    // 发送创建房间请求
+                    out.println("CREATE:" + username);
+
+                    // 接收服务器响应
+                    String response = in.readLine();
+                    if (response.startsWith("ROOM_CREATED:")) {
+                        int roomId = Integer.parseInt(response.split(":")[1]);
+                        room_id.setText(String.valueOf(roomId));
+
+                        CopyOnWriteArrayList<String> players = new CopyOnWriteArrayList<>();
+                        players.add(username);
+
+                        JOptionPane.showMessageDialog(this, "连接成功，房间创建成功！房间号为：" + roomId,
+                                "连接成功", JOptionPane.INFORMATION_MESSAGE);
+
+                        new Game(socket, roomId, username,true,players); // 传递未关闭的 Socket
+                        // 关闭开始界面
+                        SwingUtilities.invokeLater(() -> dispose());
+
+                    } else {
+                        // 如果创建失败，手动关闭 Socket
+                        socket.close();
+                    }
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "连接服务器失败");
+                }
+            }
+        });
+        // 加入房间按钮
+        Start.addActionListener(e -> {
+            String username = JOptionPane.showInputDialog("请输入你的昵称：");
+            if (username == null || username.trim().isEmpty())
+                return;
+
+            try {
+                // 手动创建 Socket，不使用 try-with-resources
+                Socket socket = new Socket(server_ip.getText(), PORT);
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                
-                // 发送创建房间请求
-                out.println("CREATE:" + username);
-                
-                // 接收服务器响应
-                String response = in.readLine();
-                if (response.startsWith("ROOM_CREATED:")) {
-                    int roomId = Integer.parseInt(response.split(":")[1]);
-                    room_id.setText(String.valueOf(roomId));
-                    new Game(socket, roomId, username); // 传递socket保持长连接
-                    dispose();
-                }
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "连接服务器失败");
-            }
-        }
-    });
 
-    // 加入房间按钮
-    Start.addActionListener(e -> {
-        String username = JOptionPane.showInputDialog("请输入你的昵称：");
-        if (username == null || username.trim().isEmpty()) return;
-        
-        try (Socket socket = new Socket(server_ip.getText(), PORT)) {
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            
-            // 验证房间号
-            int roomId = Integer.parseInt(room_id.getText());
-            out.println("VALIDATE:" + roomId);
-            String validateRes = in.readLine();
-            
-            if ("VALIDATION_RESULT:true".equals(validateRes)) {
-                // 加入房间
-                out.println("JOIN:" + roomId + ":" + username);
-                String joinRes = in.readLine();
-                if (joinRes.startsWith("JOIN_SUCCESS:")) {
-                    new Game(socket, roomId, username);
-                    dispose();
+                // 验证房间号
+                int roomId = Integer.parseInt(room_id.getText());
+                out.println("VALIDATE:" + roomId);
+                String validateRes = in.readLine();
+
+                if ("VALIDATION_RESULT:true".equals(validateRes)) {
+                    // 加入房间
+                    out.println("JOIN:" + roomId + ":" + username);
+                    String joinRes = in.readLine();
+                    if (joinRes.startsWith("JOIN_SUCCESS:")) {
+                        String playersStr = joinRes.substring("JOIN_SUCCESS:".length());
+                        CopyOnWriteArrayList<String> players = new CopyOnWriteArrayList<>(Arrays.asList(playersStr.split(",")));
+                        new Game(socket, roomId, username,false,players); // 传递未关闭的 Socket
+                        // 关闭开始界面
+                        SwingUtilities.invokeLater(() -> dispose());
+
+                    } else {
+                        JOptionPane.showMessageDialog(this, joinRes);
+                        socket.close(); // 加入失败时关闭
+                    }
                 } else {
-                    JOptionPane.showMessageDialog(this, joinRes);
+                    JOptionPane.showMessageDialog(this, "房间不存在");
+                    socket.close(); // 验证失败时关闭
                 }
-            } else {
-                JOptionPane.showMessageDialog(this, "房间不存在");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "--连接失败：" + ex.getMessage());
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "连接失败：" + ex.getMessage());
-        }
-    });
-}
+        });
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Client1());
     }
