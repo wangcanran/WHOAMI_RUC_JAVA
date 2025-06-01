@@ -4,9 +4,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import javax.swing.*;
 
 public class Client1 extends JFrame {
@@ -128,15 +125,11 @@ public class Client1 extends JFrame {
                         int roomId = Integer.parseInt(response.split(":")[1]);
                         room_id.setText(String.valueOf(roomId));
 
-                        CopyOnWriteArrayList<String> players = new CopyOnWriteArrayList<>();
-                        players.add(username);
-
                         JOptionPane.showMessageDialog(this, "连接成功，房间创建成功！房间号为：" + roomId,
                                 "连接成功", JOptionPane.INFORMATION_MESSAGE);
 
-                        new Game(socket, roomId, username,true,players); // 传递未关闭的 Socket
-                        // 关闭开始界面
-                        SwingUtilities.invokeLater(() -> dispose());
+                        new Game(socket, roomId, username); // 传递未关闭的 Socket
+                        dispose();
                     } else {
                         // 如果创建失败，手动关闭 Socket
                         socket.close();
@@ -168,11 +161,8 @@ public class Client1 extends JFrame {
                     out.println("JOIN:" + roomId + ":" + username);
                     String joinRes = in.readLine();
                     if (joinRes.startsWith("JOIN_SUCCESS:")) {
-                        String playersStr = joinRes.substring("JOIN_SUCCESS:".length());
-                        CopyOnWriteArrayList<String> players = new CopyOnWriteArrayList<>(Arrays.asList(playersStr.split(",")));
-                        new Game(socket, roomId, username,false,players); // 传递未关闭的 Socket
-                        // 关闭开始界面
-                        SwingUtilities.invokeLater(() -> dispose());
+                        new Game(socket, roomId, username); // 传递未关闭的 Socket
+                        // dispose();
                     } else {
                         JOptionPane.showMessageDialog(this, joinRes);
                         socket.close(); // 加入失败时关闭
