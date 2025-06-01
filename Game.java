@@ -5,6 +5,10 @@ import java.net.*;
 import java.util.Arrays;
 import java.util.concurrent.*;
 import javax.swing.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+//import javafx.stage.WindowEvent;
 
 public class Game {
     private final Socket socket;
@@ -97,6 +101,7 @@ public class Game {
                     gameUI.updatePlayers(players);
                 }
             });
+
         }
         // 其他消息处理...
     }

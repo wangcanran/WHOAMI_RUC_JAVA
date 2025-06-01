@@ -137,7 +137,6 @@ public class Client1 extends JFrame {
                         new Game(socket, roomId, username,true,players); // 传递未关闭的 Socket
                         // 关闭开始界面
                         SwingUtilities.invokeLater(() -> dispose());
-
                     } else {
                         // 如果创建失败，手动关闭 Socket
                         socket.close();
@@ -174,7 +173,6 @@ public class Client1 extends JFrame {
                         new Game(socket, roomId, username,false,players); // 传递未关闭的 Socket
                         // 关闭开始界面
                         SwingUtilities.invokeLater(() -> dispose());
-
                     } else {
                         JOptionPane.showMessageDialog(this, joinRes);
                         socket.close(); // 加入失败时关闭
