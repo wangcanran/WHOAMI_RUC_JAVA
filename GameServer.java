@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class GameServer {
-    private static final int PORT = 8000;
+    private static final int PORT = 8080;
     private static final ConcurrentHashMap<Integer, RoomInfo> rooms = new ConcurrentHashMap<>();
     private static final Random random = new Random();
     private static ServerSocket serverSocket;
@@ -75,9 +75,9 @@ public class GameServer {
             do {
                 newRoomId = 1000 + random.nextInt(9000);
             } while (rooms.containsKey(newRoomId));
-
+        
             RoomInfo roomInfo = new RoomInfo(username);
-            roomInfo.clientWriters.add(out);
+            roomInfo.clientWriters.add(out); 
             rooms.put(newRoomId, roomInfo);
             currentRoomId = newRoomId;
 

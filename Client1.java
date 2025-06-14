@@ -12,7 +12,7 @@ import javax.swing.*;
 public class Client1 extends JFrame {
     private JTextField server_ip, room_id;
     private JButton Start, End, Create;
-    private static final int PORT = 8000;
+    private static final int PORT = 8080;
 
     public Client1() {
         super("谁是卧底-开始界面");

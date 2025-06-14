@@ -23,11 +23,7 @@ public class Game {
         
         // 创建并显示GameUI
         SwingUtilities.invokeLater(() -> {
-            gameUI = new GameUI(isHost, players, username);
-            gameUI.setTitle("房间号：" + roomId + " - 玩家：" + username);
-            gameUI.setSize(800, 600);
-            gameUI.setLocationRelativeTo(null);
-            gameUI.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // 防止直接关闭
+            gameUI = new GameUI(isHost, players, username,roomId);
             
             // 添加窗口关闭监听器
             gameUI.addWindowListener(new WindowAdapter() {
@@ -38,6 +34,7 @@ public class Game {
             });
             
             gameUI.setVisible(true); // 确保窗口可见
+            
         });
         
         // 启动消息监听线程
