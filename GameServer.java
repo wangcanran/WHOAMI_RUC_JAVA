@@ -4,10 +4,19 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class GameServer {
-    private static final int PORT = 8000;
-    private static final ConcurrentHashMap<Integer, List<String>> rooms = new ConcurrentHashMap<>();
+    private static final int PORT = 8080;
+    private static final ConcurrentHashMap<Integer, RoomInfo> rooms = new ConcurrentHashMap<>();
     private static final Random random = new Random();
     private static ServerSocket serverSocket;
+
+    static class RoomInfo {
+        CopyOnWriteArrayList<String> players = new CopyOnWriteArrayList<>();
+        CopyOnWriteArrayList<PrintWriter> clientWriters = new CopyOnWriteArrayList<>();
+
+        public RoomInfo(String creator) {
+            players.add(creator);
+        }
+    }
 
     public static void main(String[] args) {
         try {
@@ -27,6 +36,8 @@ public class GameServer {
         private final Socket socket;
         private PrintWriter out;
         private BufferedReader in;
+        private int currentRoomId = -1;
+        private String username;
 
         public ClientHandler(Socket socket) {
             this.socket = socket;
@@ -58,21 +69,30 @@ public class GameServer {
         }
 
         private void handleCreateRoom(String username) {
+            this.username = username;
             int newRoomId;
             do {
                 newRoomId = 1000 + random.nextInt(9000);
             } while (rooms.containsKey(newRoomId));
 
-            List<String> users = new CopyOnWriteArrayList<>();
-            users.add(username);
-            rooms.put(newRoomId, users);
+            RoomInfo roomInfo = new RoomInfo(username);
+            roomInfo.clientWriters.add(out);
+            rooms.put(newRoomId, roomInfo);
+            currentRoomId = newRoomId;
+
             out.println("ROOM_CREATED:" + newRoomId);
         }
 
         private void handleJoinRoom(int roomId, String username) {
             if (rooms.containsKey(roomId)) {
-                rooms.get(roomId).add(username);
-                out.println("JOIN_SUCCESS:" + String.join(",", rooms.get(roomId)));
+                RoomInfo roomInfo = rooms.get(roomId);
+                roomInfo.players.add(username);
+                roomInfo.clientWriters.add(out);
+                currentRoomId = roomId;
+
+                // 广播新玩家加入
+                broadcast(roomId, "PLAYER_JOINED:" + username);
+                out.println("JOIN_SUCCESS:" + String.join(",", roomInfo.players));
             } else {
                 out.println("ERROR:房间不存在");
             }
@@ -80,6 +100,16 @@ public class GameServer {
 
         private void handleValidateRoom(int roomId) {
             out.println("VALIDATION_RESULT:" + rooms.containsKey(roomId));
+        }
+
+        // 添加广播方法
+        private void broadcast(int roomId, String message) {
+            if (rooms.containsKey(roomId)) {
+                RoomInfo roomInfo = rooms.get(roomId);
+                for (PrintWriter writer : roomInfo.clientWriters) {
+                    writer.println(message);
+                }
+            }
         }
     }
 }
